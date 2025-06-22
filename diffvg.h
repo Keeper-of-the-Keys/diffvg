@@ -87,8 +87,7 @@ inline int idiv_ceil(int x, int y) {
 }
 
 template <typename T>
-DEVICE
-inline void swap_(T &a, T &b) {
+__device__ inline void swap_(T &a, T &b) {
     T tmp = a;
     a = b;
     b = tmp;

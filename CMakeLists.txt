@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.21)
 
 project(diffvg VERSION 0.0.1 DESCRIPTION "Differentiable Vector Graphics")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+set(CMAKE_MODULE_PATH $ENV{CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(WIN32)
@@ -12,9 +12,22 @@ else()
 endif()
 add_subdirectory(pybind11)
 
-option(DIFFVG_CUDA "Build diffvg with GPU code path?" ON)
+set(DIFFVG_HIP $ENV{DIFFVG_CUDA})
 
-if(DIFFVG_CUDA)
+if(DIFFVG_HIP STREQUAL "hip")
+    set(DIFFVG_CUDA ${DIFFVG_HIP})
+    message(STATUS "Build diffvg with ROCm GPU code path")
+else()
+    option(DIFFVG_CUDA "Build diffvg with CUDA GPU code path?" ON)
+endif()
+
+if(DIFFVG_CUDA STREQUAL "hip")
+    message(STATUS "[ESR] Build with ROCm support")
+    find_package(hip REQUIRED)
+    enable_language(HIP)
+    include(Hipify)
+    hipify(CUDA_SOURCE_DIR "/home/eliyahu/sources/ai/diffvg")
+elseif(DIFFVG_CUDA)
     message(STATUS "Build with CUDA support")
     find_package(CUDA 10 REQUIRED)
     set(CMAKE_CUDA_STANDARD 11)
@@ -34,7 +47,14 @@ find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_PATH})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(pybind11/include)
-if(DIFFVG_CUDA)
+
+if(DIFFVG_CUDA STREQUAL "hip")
+    link_directories(/opt/rocm-6.4.1/include/)
+    add_compile_options("-I/opt/rocm-6.4.1/include/")
+    add_compile_definitions(__HIP_PLATFORM_AMD__)
+    add_compile_definitions(__HIP__)
+    add_compile_definitions(THRUST_DEVICE_SYSTEM=5)
+elseif(DIFFVG_CUDA)
     link_directories(${CUDA_LIBRARIES})
 else()
     include_directories(${THRUST_INCLUDE_DIR})
@@ -52,32 +72,66 @@ if(NOT DIFFVG_CUDA)
     add_compile_options("-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP")
 endif()
 
-set(SRCS atomic.h
-         color.h
-         cdf.h
-         cuda_utils.h
-         diffvg.h
-         edge_query.h
-         filter.h
-         matrix.h
-         parallel.h
-         pcg.h
-         ptr.h
-         sample_boundary.h
-         scene.h
-         shape.h
-         solve.h
-         vector.h
-         within_distance.h
-         winding_number.h
-         atomic.cpp
-         color.cpp
-         diffvg.cpp
-         parallel.cpp
-         scene.cpp
-         shape.cpp)
+if(DIFFVG_CUDA STREQUAL "hip")
+    set(SRCS atomic.h
+             color.h
+             cdf.h
+             hip_utils.h
+             diffvg.h
+             edge_query.h
+             filter.h
+             matrix.h
+             parallel_hip.h
+             pcg.h
+             ptr.h
+             sample_boundary_hip.h
+             scene_hip.h
+             shape.h
+             solve.h
+             vector.h
+             within_distance.h
+             winding_number_hip.h
+             atomic.cpp
+             color.cpp
+             diffvg_hip.cpp
+             parallel_hip.cpp
+             scene_hip.cpp
+             shape.cpp)
+else()
+    set(SRCS atomic.h
+             color.h
+             cdf.h
+             cuda_utils.h
+             diffvg.h
+             edge_query.h
+             filter.h
+             matrix.h
+             parallel.h
+             pcg.h
+             ptr.h
+             sample_boundary.h
+             scene.h
+             shape.h
+             solve.h
+             vector.h
+             within_distance.h
+             winding_number.h
+             atomic.cpp
+             color.cpp
+             diffvg.cpp
+             parallel.cpp
+             scene.cpp
+             shape.cpp)
+endif()
 
-if(DIFFVG_CUDA)
+if(DIFFVG_CUDA STREQUAL "hip")
+    set_source_files_properties(
+        diffvg_hip.cpp
+        scene_hip.cpp
+        PROPERTIES LANGUAGE HIP)
+
+    add_library(diffvg MODULE ${SRCS})
+elseif(DIFFVG_CUDA)
     add_compile_definitions(COMPILE_WITH_CUDA)
     set_source_files_properties(
         diffvg.cpp
