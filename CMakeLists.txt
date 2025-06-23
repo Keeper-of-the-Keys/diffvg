@@ -126,6 +126,7 @@ endif()
 
 if(DIFFVG_CUDA STREQUAL "hip")
     set_source_files_properties(
+        diffvg.h
         diffvg_hip.cpp
         scene_hip.cpp
         PROPERTIES LANGUAGE HIP)

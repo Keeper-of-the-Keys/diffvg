@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef __NVCC__ 
-    #define DEVICE __device__ __host__ 
+#if defined(__NVCC__) || defined(__HIPCC__)
+    #define DEVICE __device__ __host__
 #else
     #define DEVICE
 #endif
 
-#ifndef __NVCC__
+#if !defined(__NVCC__)
     #include <cmath>
     namespace {
         inline float fmodf(float a, float b) {
@@ -87,7 +87,8 @@ inline int idiv_ceil(int x, int y) {
 }
 
 template <typename T>
-__device__ inline void swap_(T &a, T &b) {
+DEVICE
+inline void swap_(T &a, T &b) {
     T tmp = a;
     a = b;
     b = tmp;

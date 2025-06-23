@@ -17,7 +17,7 @@ size_t align(size_t s) {
 template <typename T>
 void allocate(bool use_gpu, T **p) {
     if (use_gpu) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
         checkCuda(cudaMallocManaged(p, sizeof(T)));
 #else
         throw std::runtime_error("diffvg not compiled with GPU");
@@ -31,7 +31,7 @@ void allocate(bool use_gpu, T **p) {
 template <typename T>
 void allocate(bool use_gpu, size_t size, T **p) {
     if (use_gpu) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
         checkCuda(cudaMallocManaged(p, size * sizeof(T)));
 #else
         throw std::runtime_error("diffvg not compiled with GPU");
@@ -941,11 +941,11 @@ Scene::Scene(int canvas_width,
     this->num_total_shapes = num_total_shapes;
 
     // Memory initialization
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
     int old_device_id = -1;
 #endif
     if (use_gpu) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
         checkCuda(cudaGetDevice(&old_device_id));
         if (gpu_index != -1) {
             checkCuda(cudaSetDevice(gpu_index));
@@ -968,7 +968,7 @@ Scene::Scene(int canvas_width,
     std::vector<float> shape_length_list = compute_shape_length(shape_list);
     // Copy shape_length
     if (use_gpu) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
         checkCuda(cudaMemcpy(this->shapes_length, &shape_length_list[0], num_shapes * sizeof(float), cudaMemcpyHostToDevice));
 #else
         throw std::runtime_error("diffvg not compiled with GPU");
@@ -986,7 +986,7 @@ Scene::Scene(int canvas_width,
     this->d_filter->radius = 0;
 
     if (use_gpu) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
         if (old_device_id != -1) {
             checkCuda(cudaSetDevice(old_device_id));
         }
@@ -1002,7 +1002,7 @@ Scene::~Scene() {
         return;
     }
     if (use_gpu) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
         int old_device_id = -1;
         checkCuda(cudaGetDevice(&old_device_id));
         if (gpu_index != -1) {

@@ -34,7 +34,7 @@ int num_system_cores();
 void parallel_init();
 void parallel_cleanup();
 
-#ifdef __CUDACC__
+#if defined(__CUDACC__) || defined(__HIPCC__)
 template <typename T>
 __global__ void parallel_for_device_kernel(T functor, int count) {
     auto idx = threadIdx.x + blockIdx.x * blockDim.x;

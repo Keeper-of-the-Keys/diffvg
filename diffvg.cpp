@@ -1113,7 +1113,7 @@ Vector4f sample_color_prefiltered(const SceneData &scene,
 }
 
 struct weight_kernel {
-    __device__ void operator()(int idx) {
+    DEVICE void operator()(int idx) {
         auto rng_state = init_pcg32(idx, seed);
         // height * width * num_samples_y * num_samples_x
         auto sx = idx % num_samples_x;
@@ -1159,7 +1159,7 @@ struct weight_kernel {
 
 // We use a "mega kernel" for rendering
 struct render_kernel {
-    __device__ void operator()(int idx) {
+    DEVICE void operator()(int idx) {
         // height * width * num_samples_y * num_samples_x
         auto pt = Vector2f{0, 0};
         auto x = 0;
@@ -1323,7 +1323,7 @@ struct BoundarySample {
 };
 
 struct sample_boundary_kernel {
-    __device__ void operator()(int idx) {
+    DEVICE void operator()(int idx) {
         boundary_samples[idx].pt = Vector2f{0, 0};
         boundary_samples[idx].shape_id = -1;
         boundary_ids[idx] = idx;
@@ -1386,7 +1386,7 @@ struct sample_boundary_kernel {
 };
 
 struct render_edge_kernel {
-    __device__ void operator()(int idx) {
+    DEVICE void operator()(int idx) {
         auto bid = boundary_ids[idx];
         if (boundary_samples[bid].shape_id == -1) {
             return;
@@ -1490,7 +1490,7 @@ void render(std::shared_ptr<Scene> scene,
             bool use_prefiltering,
             ptr<float> eval_positions,
             int num_eval_positions) {
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
     int old_device_id = -1;
     if (scene->use_gpu) {
         checkCuda(cudaGetDevice(&old_device_id));
@@ -1641,7 +1641,7 @@ void render(std::shared_ptr<Scene> scene,
     }
 
     parallel_cleanup();
-#ifdef __NVCC__
+#if defined(__NVCC__) || defined(__HIPCC__)
     if (old_device_id != -1) {
         checkCuda(cudaSetDevice(old_device_id));
     }
